@@ -1,30 +1,28 @@
-import React, { useEffect } from "react";
-import { View, Text } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect } from 'react';
+import { View, Text, Image } from 'react-native';
+import colors from '../theme/colors';
 
-export default function WelcomeScreen() {
-  const navigation = useNavigation();
-
+export default function WelcomeScreen({ navigation }) {
+  // Efecto para cambiar automáticamente a Register después de 4 segundos
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace("Login"); // redirigir a login
-    }, 2500); // 2.5 segundos
-
+      navigation.navigate('Register');
+    }, 4000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigation]);
 
   return (
-    <View className="flex-1 bg-white justify-center items-center">
-      {/* Silueta hamburguesa */}
-      <MaterialCommunityIcons
-        name="hamburger"
-        size={150}
-        color="#FF7A00"
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+      {/* Silueta de hamburguesa */}
+      <Image
+        source={require('../../assets/burger-icon.png')}
+        style={{ width: 260, height: 260, tintColor: colors.primary, marginBottom: 6 }}
+        resizeMode="contain"
       />
-      {/* Texto Bienvenido */}
-      <Text className="mt-6 text-3xl font-bold text-[#FF7A00]">
-        Bienvenido
+
+      {/* Texto de bienvenida */}
+      <Text style={{ color: colors.primary, fontSize: 34, fontWeight: '900', letterSpacing: 1.5 }}>
+        BIENVENIDO
       </Text>
     </View>
   );
