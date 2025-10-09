@@ -50,7 +50,7 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
 ## ⚙️ Instalación y ejecución
 
 1. Clona este repositorio:
-   git clone https://github.com/tu-usuario/Fast-Food-App.git
+   git clone https://github.com/AlfredoAD20/Fast-food
 
 2. instala dependencias
 **cd client**
