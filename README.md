@@ -15,9 +15,15 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
 - Pantallas de bienvenida y registro personalizadas.
 
 ## 🖼️ Vista previa
-![Pantalla de Bienvenida](./assets/app-bienvenido.png)
-![Pantalla de Registro](./assets/app-register.png)
-![Pantalla de Inicio](./assets/app-inicio.png)
+
+<div align="center">
+  <img src="./assets/app-bienvenido.png" alt="Pantalla de Bienvenida" width="250"/>
+  <img src="./assets/app-register.png" alt="Pantalla de Registro" width="250"/>
+  <img src="./assets/app-inicio.png" alt="Pantalla de Inicio" width="250"/>
+</div>
+
+> Las imágenes muestran las principales pantallas: **Bienvenida**, **Registro** e **Inicio**.
+
 
 
 ## 🧩 Estructura del proyecto
@@ -57,11 +63,11 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
    git clone https://github.com/AlfredoAD20/Fast-food
 
 2. instala dependencias
-**cd client**
-**npm install**
+- **cd client**
+- **npm install**
 
 3. inicia el servidor expo
-**npx expo start** 
+- **npx expo start** 
 
 4. Escanea el QR en tu expo go
 
