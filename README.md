@@ -22,22 +22,26 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
 
 ## 🧩 Estructura del proyecto
 
+```
 📦 client/
-┣ 📂 assets/
-┃ ┣ burger-icon.png
-┣ 📂 components/
-┣ 📂 src/
-┃ ┣ 📂 navigation/
-┃ ┗ 📂 screens/
-┃ ┣ FavoritosScreen.js
-┃ ┣ InicioScreen.js
-┃ ┣ PedidoScreen.js
-┃ ┣ PerfilScreen.js
-┃ ┣ RegisterScreen.js
-┃ ┗ WelcomeScreen.js
-┣ 📂 theme/
-┣ App.js
+ ┣ 📂 assets/
+ ┃ ┗ burger-icon.png
+ ┣ 📂 components/
+ ┣ 📂 src/
+ ┃ ┣ 📂 navigation/
+ ┃ ┃ ┗ MainTabs.js
+ ┃ ┗ 📂 screens/
+ ┃   ┣ FavoritosScreen.js
+ ┃   ┣ InicioScreen.js
+ ┃   ┣ PedidoScreen.js
+ ┃   ┣ PerfilScreen.js
+ ┃   ┣ RegisterScreen.js
+ ┃   ┗ WelcomeScreen.js
+ ┣ 📂 theme/
+ ┣ .gitignore
+ ┣ App.js
 
+```
 
 ## 🧠 Tecnologías utilizadas
 
