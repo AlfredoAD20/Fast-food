@@ -28,7 +28,6 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
 ┣ 📂 components/
 ┣ 📂 src/
 ┃ ┣ 📂 navigation/
-┃ ┃  ┗ MainTaps.js
 ┃ ┗ 📂 screens/
 ┃ ┣ FavoritosScreen.js
 ┃ ┣ InicioScreen.js
@@ -51,15 +50,14 @@ El objetivo es simular una plataforma sencilla donde los usuarios puedan visuali
 ## ⚙️ Instalación y ejecución
 
 1. Clona este repositorio:
-   ```bash
    git clone https://github.com/tu-usuario/Fast-Food-App.git
 
 2. instala dependencias
-cd client
-npm install
+**cd client**
+**npm install**
 
 3. inicia el servidor expo
-npx expo start 
+**npx expo start** 
 
 4. Escanea el QR en tu expo go
 
