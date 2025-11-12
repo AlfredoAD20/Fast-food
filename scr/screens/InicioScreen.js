@@ -1,28 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, FlatList, StyleSheet, ActivityIndicator,TouchableOpacity } from 'react-native';
+import { useCart} from '../CartContext';
+import { API_URL } from "@env";
 
 const InicioScreen = () => {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const { addToCart } = useCart();
 
   
-  const API_URL = 'http://192.168.1.72:3000/api/products';
+  const API_PRODUCTS = `${API_URL}/products`;
 
   useEffect(() => {
     const obtenerProductos = async () => {
       try {
-        const respuesta = await fetch(API_URL);
+        const respuesta = await fetch(API_PRODUCTS);
         const data = await respuesta.json();
         setProductos(data);
       } catch (error) {
-        console.error('Error al obtener productos:', error);
       } finally {
         setCargando(false);
       }
     };
-
     obtenerProductos();
   }, []);
+  
 
   if (cargando) {
     return (
@@ -47,6 +49,13 @@ const InicioScreen = () => {
       )}
       <Text style={styles.nombre}>{item.nombre}</Text>
       <Text style={styles.precio}>${item.precio}</Text>
+
+      <TouchableOpacity
+      style={styles.boton}
+      onPress={() => addToCart(item)}
+      >
+        <Text style={styles.botonTexto}>Agregar</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -122,6 +131,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
     marginTop: 5,
+  },
+  boton: {
+    marginTop: 10,
+    backgroundColor: '#e85c1e',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  botonTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   loader: {
     flex: 1,
