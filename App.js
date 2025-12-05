@@ -6,11 +6,13 @@ import { CartProvider } from './scr/CartContext';
 import WelcomeScreen from './scr/screens/WelcomeScreen';
 import MainTabs from './scr/navigation/MainTabs';
 import AuthStack from './scr/auth';
+import { AuthProvider } from './scr/auth/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
+   <AuthProvider> 
     <CartProvider>
       <NavigationContainer>
         <StatusBar style="light" />
@@ -21,5 +23,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </CartProvider>
+  </AuthProvider>
   );
 }

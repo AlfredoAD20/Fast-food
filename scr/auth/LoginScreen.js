@@ -1,116 +1,182 @@
-// auth/LoginScreen.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  Pressable,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Image,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import colors from '../theme/colors';
+import { API_URL } from '@env'; 
+import { AuthContext } from '../auth/AuthContext'; 
 
-const LoginScreen = () => {
-  const navigation = useNavigation();
+
+export default function LoginScreen({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // 🔐 Aquí luego conectaremos con la API (login real)
+  const { login } = useContext(AuthContext); 
+
+  const handleLogin = async () => {
     if (!correo || !password) {
-      alert('Por favor llena tu correo y contraseña');
+      Alert.alert('Campos incompletos', 'Ingresa tu correo y contraseña');
       return;
     }
 
-    // Por ahora, solo simulamos login correcto
-    // y tú después navegas a MainTabs desde el Stack padre.
-    alert('Inicio de sesión simulado ✅ (luego lo haremos real)');
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: correo, 
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        Alert.alert('Error al iniciar sesión', data.message || 'No se pudo iniciar sesión');
+        return;
+      }
+
+       login(data.user, data.token);
+
+      console.log('TOKEN:', data.token);
+      console.log('USER:', data.user);
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs', params: { screen: 'Inicio' } }],
+      });
+    } catch (error) {
+      console.error('Error en login:', error);
+      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const irARegistro = () => {
-    navigation.navigate('Register'); // 👈 va a la pantalla de registro del AuthStack
+    navigation.navigate('Register');
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.titulo}>Iniciar sesión</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <LinearGradient
+          colors={['#FFE5CC', '#FFF8DC', '#FFE5CC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 }}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Ícono hamburguesa */}
+            <Image
+              source={require('../../assets/burger-icon.png')}
+              style={{ width: 200, height: 200, tintColor: colors.primaryDark, marginBottom: 5 }}
+              resizeMode="contain"
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Correo electrónico"
-        value={correo}
-        onChangeText={setCorreo}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+            {/* Título */}
+            <Text
+              style={{
+                fontSize: 34,
+                fontWeight: '900',
+                color: colors.primaryDark,
+                marginBottom: 30,
+              }}
+            >
+              Inicia sesión
+            </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+            {/* Campos de entrada */}
+            <View style={{ width: '100%', gap: 18 }}>
+              <TextInput
+                value={correo}
+                onChangeText={setCorreo}
+                placeholder="Correo electrónico"
+                placeholderTextColor={colors.primary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={{
+                  borderWidth: 2,
+                  borderColor: colors.primary,
+                  borderRadius: 25,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  backgroundColor: 'transparent',
+                  color: colors.text,
+                  fontSize: 16,
+                }}
+              />
 
-      <TouchableOpacity style={styles.boton} onPress={handleLogin}>
-        <Text style={styles.botonTexto}>Entrar</Text>
-      </TouchableOpacity>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Contraseña"
+                placeholderTextColor={colors.primary}
+                secureTextEntry
+                style={{
+                  borderWidth: 2,
+                  borderColor: colors.primary,
+                  borderRadius: 25,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  backgroundColor: 'transparent',
+                  color: colors.text,
+                  fontSize: 16,
+                }}
+              />
+            </View>
 
-      <TouchableOpacity onPress={irARegistro}>
-        <Text style={styles.linkTexto}>
-          ¿No tienes cuenta? <Text style={{ fontWeight: 'bold' }}>Regístrate</Text>
-        </Text>
-      </TouchableOpacity>
+            {/* Botón Entrar */}
+            <Pressable
+              onPress={handleLogin}
+              style={({ pressed }) => ({
+                marginTop: 40,
+                borderWidth: 2,
+                borderColor: colors.primaryDark,
+                borderRadius: 25,
+                paddingVertical: 10,
+                paddingHorizontal: 35,
+                backgroundColor: pressed ? 'rgba(255,255,255,0.2)' : 'transparent',
+                opacity: loading ? 0.6 : 1,
+              })}
+              disabled={loading}
+            >
+              <Text style={{ color: colors.primaryDark, fontSize: 18, fontWeight: '700' }}>
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Text>
+            </Pressable>
+
+            {/* Link a registro */}
+            <Pressable onPress={irARegistro} style={{ marginTop: 20 }}>
+              <Text style={{ color: colors.primaryDark, fontSize: 14 }}>
+                ¿No tienes cuenta? <Text style={{ fontWeight: 'bold' }}>Regístrate</Text>
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </LinearGradient>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fffaf2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-  },
-  titulo: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#e85c1e',
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  boton: {
-    width: '100%',
-    backgroundColor: '#e85c1e',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  botonTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  linkTexto: {
-    marginTop: 15,
-    color: '#555',
-    fontSize: 14,
-  },
-});
-
-export default LoginScreen;
+}
