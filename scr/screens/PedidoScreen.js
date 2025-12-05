@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { SafeAreaView } from "react-native";
 import {
   View,
   Text,
@@ -6,15 +7,72 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useCart } from '../CartContext';
+import { API_URL } from '@env';
 
 const PedidoScreen = () => {
   const { cart, addToCart, removeFromCart, clearCart, getTotal } = useCart();
+  const [enviando, setEnviando] = useState(false); 
+
+  const handleConfirmarPedido = async () => {
+    if (cart.length === 0) {
+      Alert.alert('Carrito vacío', 'Agrega productos antes de confirmar el pedido.');
+      return;
+    }
+    try {
+      setEnviando(true);
+
+      // armamos el payload para la API
+      const productos = cart.map((item) => ({
+        productoId: item._id,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.quantity,
+      }));
+      const respuesta = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productos }),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error('Error al enviar pedido');
+      }
+
+      const data = await respuesta.json();
+      //console.log('Pedido guardado:', data);
+
+      clearCart();
+
+      Alert.alert(
+        '¡Pedido confirmado! 🎉',
+        'Tu pedido se ha registrado correctamente.'
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        'Error',
+        'No se pudo confirmar el pedido. Verifica tu conexión a la API.'
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
-      <Image source={{ uri: item.imagen }} style={styles.imagen} />
+            {item.imagen ? (
+        <Image source={{ uri: item.imagen }} style={styles.imagen} />
+      ) : (
+        <View style={[styles.imagen, styles.imagenPlaceholder]}>
+          <Text>Sin imagen</Text>
+        </View>
+      )}
       <View style={styles.detalles}>
         <Text style={styles.nombre}>{item.nombre}</Text>
         <Text style={styles.precio}>${item.precio}</Text>
@@ -42,7 +100,7 @@ const PedidoScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.titulo}>Tu Pedido</Text>
 
       {cart.length === 0 ? (
@@ -66,21 +124,27 @@ const PedidoScreen = () => {
 
             <TouchableOpacity
               style={[styles.boton, { backgroundColor: '#FF7F50' }]}
-              onPress={() => alert('🧾 Pedido confirmado (demo)')}
+              onPress={handleConfirmarPedido}
+              disabled={enviando}
             >
-              <Text style={styles.botonTexto}>Confirmar Pedido</Text>
+              {enviando ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.botonTexto}>Confirmar Pedido</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.boton, { backgroundColor: '#aaa' }]}
               onPress={clearCart}
+              disabled={enviando}
             >
               <Text style={styles.botonTexto}>Vaciar Carrito</Text>
             </TouchableOpacity>
           </View>
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -89,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fffaf2',
     paddingHorizontal: 15,
-    paddingTop: 10,
+    marginTop: 30,
   },
   titulo: {
     fontSize: 22,
@@ -116,6 +180,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 10,
+  },
+  imagenPlaceholder: {
+    backgroundColor: '#ffe6cc',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   detalles: {
     flex: 1,

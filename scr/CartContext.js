@@ -6,6 +6,7 @@ const CartContext = createContext();
 // 🧩 2️⃣ Proveedor global del carrito
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
   // ➕ Agregar producto al carrito
   const addToCart = (product) => {
@@ -35,9 +36,36 @@ export const CartProvider = ({ children }) => {
   const getTotal = () =>
     cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
+    // ⭐ Alternar favorito (agregar / quitar)
+    const toggleFavorite = (product) => {
+      setFavorites((prevFavs) => {
+        const exists = prevFavs.find((item) => item._id === product._id);
+        if (exists) {
+          // si ya está, lo quitamos
+          return prevFavs.filter((item) => item._id !== product._id);
+        }
+        // si no está, lo agregamos
+        return [...prevFavs, product];
+      });
+    };
+
+    // ✔️ Saber si un producto es favorito
+  const isFavorite = (id) => {
+    return favorites.some((item) => item._id === id);
+  };
+
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, clearCart, getTotal }}
+      value={{
+        cart,
+        favorites,
+        addToCart,
+        removeFromCart,
+        clearCart,
+        getTotal,
+        toggleFavorite,
+        isFavorite,
+      }}
     >
       {children}
     </CartContext.Provider>

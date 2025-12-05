@@ -6,7 +6,7 @@ export default function WelcomeScreen({ navigation }) {
   // Efecto para cambiar automáticamente a Register después de 4 segundos
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.navigate('Register');
+      navigation.replace('Auth');
     }, 4000);
     return () => clearTimeout(timer);
   }, [navigation]);

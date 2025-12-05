@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, FlatList, StyleSheet, ActivityIndicator,TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCart} from '../CartContext';
 import { API_URL } from "@env";
+import { SafeAreaView } from "react-native";
 
 const InicioScreen = () => {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const { addToCart } = useCart();
+  const { addToCart, toggleFavorite, isFavorite } = useCart();
 
-  
   const API_PRODUCTS = `${API_URL}/products`;
 
   useEffect(() => {
@@ -36,6 +37,18 @@ const InicioScreen = () => {
   }
   const renderItem = ({ item }) => (
     <View style={styles.card}>
+       {/* ⭐ Botón de favorito arriba a la derecha */}
+       <TouchableOpacity
+        style={styles.favButton}
+        onPress={() => toggleFavorite(item)}
+      >
+        <Ionicons
+          name={isFavorite(item._id) ? 'heart' : 'heart-outline'}
+          size={20}
+          color="#e85c1e"
+        />
+
+      </TouchableOpacity>
       {item.imagen ? (
         <Image
           source={{ uri: item.imagen }}
@@ -60,7 +73,7 @@ const InicioScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.titulo}>🍔 Menú Fast Food</Text>
       <FlatList
         data={productos}
@@ -69,7 +82,7 @@ const InicioScreen = () => {
         numColumns={2}
         contentContainerStyle={styles.lista}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -78,6 +91,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fffaf2',
     paddingHorizontal: 10,
+    marginTop: 30,
   },
   titulo: {
     fontSize: 24,
@@ -148,6 +162,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  favButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 3,
+    elevation: 3,
   },
 });
 

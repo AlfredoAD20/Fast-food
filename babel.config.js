@@ -28,6 +28,7 @@ module.exports = function (api) {
         {
           moduleName: "@env",
           path: ".env",
+          allowUndefined: true,
         },
       ],
       // este debe quedar siempre al final 👇
