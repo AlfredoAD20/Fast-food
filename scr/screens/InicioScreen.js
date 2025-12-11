@@ -1,4 +1,3 @@
-// scr/screens/InicioScreen.js
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   TextInput,
   SafeAreaView,
+  Modal,           
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,7 +20,11 @@ const InicioScreen = () => {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
-  const { addToCart } = useCart();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+
+  const { addToCart, toggleFavorite, isFavorite } = useCart();
 
   const API_PRODUCTS = `${API_URL}/products`;
 
@@ -43,41 +47,59 @@ const InicioScreen = () => {
     p.nombre.toLowerCase().includes(search.toLowerCase())
   );
 
+  const abrirDetalle = (item) => {
+    setProductoSeleccionado(item);
+    setModalVisible(true);
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      {/* rating arriba derecha (por ahora fijo, luego puede venir de la BD) */}
+      {/* badge rating */}
       <View style={styles.ratingBadge}>
         <Ionicons name="star" size={12} color="#FBBF24" />
         <Text style={styles.ratingText}>{item.rating || '4.5'}</Text>
       </View>
 
-      {/* Imagen */}
-      {item.imagen ? (
-        <Image source={{ uri: item.imagen }} style={styles.imagen} resizeMode="cover" />
-      ) : (
-        <View style={styles.imagenPlaceholder}>
-          <Text style={styles.placeholderText}>Sin imagen</Text>
-        </View>
-      )}
+      <TouchableOpacity
+        style={styles.favButton}
+        onPress={() => toggleFavorite(item)}
+      >
+        <Ionicons
+          name={isFavorite(item._id) ? 'heart' : 'heart-outline'}
+          size={18}
+          color={isFavorite(item._id) ? '#FF4B5C' : '#555'}
+        />
+      </TouchableOpacity>
 
-      {/* Nombre */}
-      <Text style={styles.nombre} numberOfLines={1}>
-        {item.nombre}
-      </Text>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => abrirDetalle(item)}>
+        {item.imagen ? (
+          <Image
+            source={{ uri: item.imagen }}
+            style={styles.imagen}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.imagenPlaceholder}>
+            <Text style={styles.placeholderText}>Sin imagen</Text>
+          </View>
+        )}
 
-      {/* Info secundaria (dummy por ahora) */}
-      <View style={styles.metaRow}>
-        <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={13} color="#A0A0A0" />
-          <Text style={styles.metaText}>10 min</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Ionicons name="flame-outline" size={13} color="#A0A0A0" />
-          <Text style={styles.metaText}>500 kcal</Text>
-        </View>
-      </View>
+        <Text style={styles.nombre} numberOfLines={1}>
+          {item.nombre}
+        </Text>
 
-      {/* Precio + botón + */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={13} color="#A0A0A0" />
+            <Text style={styles.metaText}>10 min</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Ionicons name="flame-outline" size={13} color="#A0A0A0" />
+            <Text style={styles.metaText}>500 kcal</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
       <View style={styles.bottomRow}>
         <Text style={styles.precio}>${item.precio}</Text>
         <TouchableOpacity
@@ -104,7 +126,7 @@ const InicioScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* 🔎 Barra de búsqueda */}
+        {/* buscador */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
             <Ionicons name="search" size={18} color="#B0B0B0" />
@@ -121,7 +143,6 @@ const InicioScreen = () => {
           </TouchableOpacity>
         </View>
 
-        
         <LinearGradient
           colors={['#FFE5B4', '#FFD6A5']}
           start={{ x: 0, y: 0 }}
@@ -130,9 +151,9 @@ const InicioScreen = () => {
         >
           <View style={{ flex: 1 }}>
             <Text style={styles.promoBig}>50% Off</Text>
-            <Text style={styles.promoSub}>Weekend special deal</Text>
+            <Text style={styles.promoSub}>Semana especial de descuentos</Text>
             <TouchableOpacity style={styles.promoButton}>
-              <Text style={styles.promoButtonText}>Order now</Text>
+              <Text style={styles.promoButtonText}>Ordena ahora</Text>
             </TouchableOpacity>
           </View>
           <Image
@@ -142,13 +163,6 @@ const InicioScreen = () => {
           />
         </LinearGradient>
 
-        {/* Encabezado de sección */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Our trusted picks</Text>
-          <Text style={styles.sectionLink}>View all</Text>
-        </View>
-
-        {/* 🧾 Lista de productos */}
         <FlatList
           data={filtrados}
           keyExtractor={(item) => item._id}
@@ -159,6 +173,70 @@ const InicioScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       </View>
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {productoSeleccionado && (
+              <>
+                {productoSeleccionado.imagen ? (
+                  <Image
+                    source={{ uri: productoSeleccionado.imagen }}
+                    style={styles.modalImagen}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.modalImagen, styles.imagenPlaceholder]}>
+                    <Text style={styles.placeholderText}>Sin imagen</Text>
+                  </View>
+                )}
+
+                <Text style={styles.modalNombre}>
+                  {productoSeleccionado.nombre}
+                </Text>
+
+                {productoSeleccionado.descripcion ? (
+                  <Text style={styles.modalDescripcion}>
+                    {productoSeleccionado.descripcion}
+                  </Text>
+                ) : (
+                  <Text style={styles.modalDescripcionVacia}>
+                    Este producto aún no tiene descripción.
+                  </Text>
+                )}
+
+                <Text style={styles.modalPrecio}>
+                  ${productoSeleccionado.precio}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.modalBotonAgregar}
+                  onPress={() => {
+                    addToCart(productoSeleccionado);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalBotonTexto}>
+                    Agregar al carrito
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalBotonCerrar}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalCerrarTexto}>Cerrar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -166,7 +244,7 @@ const InicioScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FDF5EC', // fondo cremoso
+    backgroundColor: '#FDF5EC',
   },
   container: {
     flex: 1,
@@ -183,7 +261,6 @@ const styles = StyleSheet.create({
     color: '#6B6B6B',
     fontWeight: '600',
   },
-  // search
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -224,7 +301,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  // promo
   promoCard: {
     flexDirection: 'row',
     borderRadius: 22,
@@ -260,7 +336,6 @@ const styles = StyleSheet.create({
     height: 90,
     marginLeft: 10,
   },
-  // sección
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -281,7 +356,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingTop: 4,
   },
-  // cards
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -316,7 +390,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     position: 'absolute',
     top: 10,
-    right: 10,
+    left: 10,
     zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
@@ -330,6 +404,15 @@ const styles = StyleSheet.create({
     marginLeft: 3,
     color: '#4B4B4B',
     fontWeight: '600',
+  },
+  favButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 999,
+    padding: 4,
   },
   nombre: {
     fontSize: 14,
@@ -368,6 +451,71 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#FFF7EC',
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalImagen: {
+    width: 180,
+    height: 180,
+    borderRadius: 18,
+    marginBottom: 10,
+  },
+  modalNombre: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  modalDescripcion: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalDescripcionVacia: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  modalPrecio: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#f97316',
+    marginBottom: 12,
+  },
+  modalBotonAgregar: {
+    backgroundColor: '#e85c1e',
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    marginBottom: 8,
+  },
+  modalBotonTexto: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  modalBotonCerrar: {
+    paddingVertical: 4,
+  },
+  modalCerrarTexto: {
+    color: '#6B7280',
+    fontWeight: '600',
   },
 });
 

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import InicioScreen from '../screens/InicioScreen';
-import PedidoScreen from '../screens/PedidoScreen';
+import PedidosStack from './PedidosStack';
 import FavoritosScreen from '../screens/FavoritosScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 import colors from '../theme/colors';
@@ -36,7 +36,7 @@ export default function MainTabs() {
       })}
     >
       <Tab.Screen name="Inicio" component={InicioScreen} />
-      <Tab.Screen name="Pedido" component={PedidoScreen} />
+      <Tab.Screen name="Pedido" component={PedidosStack} />
       <Tab.Screen name="Favoritos" component={FavoritosScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>

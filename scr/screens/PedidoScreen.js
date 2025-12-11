@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { SafeAreaView } from "react-native";
+// scr/screens/PedidoScreen.js
+import React, { useState, useContext } from 'react';
 import {
+  SafeAreaView,
   View,
   Text,
   Image,
@@ -10,48 +11,71 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../CartContext';
 import { API_URL } from '@env';
+import { AuthContext } from '../auth/AuthContext';
 
-const PedidoScreen = () => {
+export default function PedidoScreen({ navigation }) {
   const { cart, addToCart, removeFromCart, clearCart, getTotal } = useCart();
-  const [enviando, setEnviando] = useState(false); 
+  const { token } = useContext(AuthContext);
+  const [enviando, setEnviando] = useState(false);
 
   const handleConfirmarPedido = async () => {
     if (cart.length === 0) {
       Alert.alert('Carrito vacío', 'Agrega productos antes de confirmar el pedido.');
       return;
     }
+
+    if (!token) {
+      Alert.alert(
+        'Inicia sesión',
+        'Necesitas iniciar sesión para confirmar tu pedido.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Ir a login', onPress: () => navigation.navigate('Auth') },
+        ]
+      );
+      return;
+    }
+
     try {
       setEnviando(true);
 
-      // armamos el payload para la API
       const productos = cart.map((item) => ({
         productoId: item._id,
         nombre: item.nombre,
-        precio: item.precio,
-        cantidad: item.quantity,
+        precio: Number(item.precio),
+        cantidad: item.quantity || 1,
       }));
+
       const respuesta = await fetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ productos }),
       });
 
-      if (!respuesta.ok) {
-        throw new Error('Error al enviar pedido');
-      }
-
       const data = await respuesta.json();
-      //console.log('Pedido guardado:', data);
+
+      if (!respuesta.ok) {
+        console.log('Error pedido:', data);
+        throw new Error(data.error || 'Error al enviar pedido');
+      }
 
       clearCart();
 
       Alert.alert(
         '¡Pedido confirmado! 🎉',
-        'Tu pedido se ha registrado correctamente.'
+        'Tu pedido se ha registrado correctamente.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Inicio'),
+          },
+        ]
       );
     } catch (error) {
       console.error(error);
@@ -66,7 +90,7 @@ const PedidoScreen = () => {
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
-            {item.imagen ? (
+      {item.imagen ? (
         <Image source={{ uri: item.imagen }} style={styles.imagen} />
       ) : (
         <View style={[styles.imagen, styles.imagenPlaceholder]}>
@@ -77,7 +101,6 @@ const PedidoScreen = () => {
         <Text style={styles.nombre}>{item.nombre}</Text>
         <Text style={styles.precio}>${item.precio}</Text>
 
-        {/* 🔸 Controles de cantidad */}
         <View style={styles.cantidadContainer}>
           <TouchableOpacity
             onPress={() => removeFromCart(item._id)}
@@ -116,7 +139,6 @@ const PedidoScreen = () => {
             contentContainerStyle={styles.lista}
           />
 
-          {/* 💰 Total y botones */}
           <View style={styles.totalContainer}>
             <Text style={styles.totalTexto}>
               Total: ${getTotal().toFixed(2)}
@@ -144,9 +166,16 @@ const PedidoScreen = () => {
           </View>
         </>
       )}
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('HistorialPedidos')}
+      >
+        <Ionicons name="time-outline" size={22} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -260,6 +289,20 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 16,
   },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 130, 
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 6,
+  },
 });
-
-export default PedidoScreen;

@@ -1,4 +1,3 @@
-// scr/screens/LoginScreen.js
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -18,14 +17,14 @@ import colors from '../theme/colors';
 import { API_URL } from '@env';
 import { AuthContext } from '../auth/AuthContext';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginVendedorScreen({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login } = useContext(AuthContext);
 
-  const handleLogin = async () => {
+  const handleLoginVendedor = async () => {
     if (!correo || !password) {
       Alert.alert('Campos incompletos', 'Ingresa tu correo y contraseña');
       return;
@@ -52,26 +51,33 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
+      // validar que sea vendedor
+      if (!data.user || data.user.rol !== 'admin') {
+        Alert.alert(
+          'Acceso restringido',
+          'Esta cuenta no está registrada como administrador/vendedor.'
+        );
+        return;
+      }      
+
+      // guardar en contexto
       login(data.user, data.token);
 
+      // ir al panel de vendedor
       navigation.reset({
         index: 0,
-        routes: [{ name: 'MainTabs', params: { screen: 'Inicio' } }],
+        routes: [{ name: 'VendedorPanel' }],
       });
     } catch (error) {
-      console.error('Error en login:', error);
+      console.error('Error en login vendedor:', error);
       Alert.alert('Error de conexión', 'No se pudo conectar con el servidor');
     } finally {
       setLoading(false);
     }
   };
 
-  const irARegistro = () => {
-    navigation.navigate('Register');
-  };
-
-  const irALoginVendedor = () => {
-    navigation.navigate('LoginVendedor'); 
+  const volverALoginNormal = () => {
+    navigation.goBack();
   };
 
   return (
@@ -92,26 +98,30 @@ export default function LoginScreen({ navigation }) {
           >
             <Image
               source={require('../../assets/burger-icon.png')}
-              style={{ width: 200, height: 200, tintColor: colors.primaryDark, marginBottom: 5 }}
+              style={{ width: 180, height: 180, tintColor: colors.primaryDark, marginBottom: 5 }}
               resizeMode="contain"
             />
 
             <Text
               style={{
-                fontSize: 34,
+                fontSize: 28,
                 fontWeight: '900',
                 color: colors.primaryDark,
-                marginBottom: 30,
+                marginBottom: 10,
               }}
             >
-              Inicia sesión
+              Portal de vendedores
+            </Text>
+
+            <Text style={{ color: colors.text, fontSize: 13, marginBottom: 20, textAlign: 'center' }}>
+              Inicia sesión con tu cuenta de vendedor para gestionar tus productos.
             </Text>
 
             <View style={{ width: '100%', gap: 18 }}>
               <TextInput
                 value={correo}
                 onChangeText={setCorreo}
-                placeholder="Correo electrónico"
+                placeholder="Correo de vendedor"
                 placeholderTextColor={colors.primary}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -147,7 +157,7 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             <Pressable
-              onPress={handleLogin}
+              onPress={handleLoginVendedor}
               style={({ pressed }) => ({
                 marginTop: 40,
                 borderWidth: 2,
@@ -161,21 +171,13 @@ export default function LoginScreen({ navigation }) {
               disabled={loading}
             >
               <Text style={{ color: colors.primaryDark, fontSize: 18, fontWeight: '700' }}>
-                {loading ? 'Entrando...' : 'Entrar'}
+                {loading ? 'Entrando...' : 'Entrar como vendedor'}
               </Text>
             </Pressable>
 
-            {/* link para registro */}
-            <Pressable onPress={irARegistro} style={{ marginTop: 20 }}>
-              <Text style={{ color: colors.primaryDark, fontSize: 14 }}>
-                ¿No tienes cuenta? <Text style={{ fontWeight: 'bold' }}>Regístrate</Text>
-              </Text>
-            </Pressable>
-
-            {/* 🆕 link para vendedores */}
-            <Pressable onPress={irALoginVendedor} style={{ marginTop: 10 }}>
+            <Pressable onPress={volverALoginNormal} style={{ marginTop: 20 }}>
               <Text style={{ color: colors.primaryDark, fontSize: 13 }}>
-                ¿Eres vendedor? <Text style={{ fontWeight: 'bold' }}>Accede a tu portal</Text>
+                ¿Eres cliente? <Text style={{ fontWeight: 'bold' }}>Volver a inicio de sesión</Text>
               </Text>
             </Pressable>
           </ScrollView>
