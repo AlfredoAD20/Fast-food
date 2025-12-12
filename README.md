@@ -26,6 +26,10 @@ Simula una plataforma real donde:
 
 > Las imágenes muestran las principales pantallas: **Bienvenida**, **Registro** e **Inicio**.
 
+## Descargar APK
+
+👉 [FastFood.apk](./apk/FastFood.apk)
+
 ### 👤 Para usuarios (clientes)
 
 - Registro e inicio de sesión con **JWT**.
