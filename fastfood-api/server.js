@@ -2,24 +2,21 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import multer from 'multer';                
-import path from 'path';                    
-import { fileURLToPath } from 'url';        
-import os from "os";
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import os from 'os';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+const BASE_URL = process.env.BASE_URL || null; 
 
 app.use(cors());
 app.use(express.json());
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,55 +32,69 @@ const storage = multer.diskStorage({
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
+  },
 });
-const upload = multer({ storage }); 
+const upload = multer({ storage });
 
 // Conexión a MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log('Conectado a MongoDB Atlas'))
-  .catch(err => console.error('Error de conexión:', err));
+  .catch((err) => console.error('Error de conexión:', err));
 
-// ----- Modelo -----
-const productSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  descripcion: String,
-  precio: { type: Number, required: true },
-  imagen: String,
-  categoria: { type: String, enum: ['burger', 'hotdog'], required: true },
-  disponible: { type: Boolean, default: true }
-}, { timestamps: true });
+// ----- Modelo Producto -----
+const productSchema = new mongoose.Schema(
+  {
+    nombre: { type: String, required: true },
+    descripcion: String,
+    precio: { type: Number, required: true },
+    imagen: String,
+    categoria: { type: String, enum: ['burger', 'hotdog'], required: true },
+    disponible: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
 
 const Product = mongoose.model('Product', productSchema);
 
 // ----- Modelo Pedido -----
-const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',          
-    required: true,
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    productos: [
+      {
+        productoId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+        nombre: { type: String, required: true },
+        precio: { type: Number, required: true },
+        cantidad: { type: Number, required: true, min: 1 },
+      },
+    ],
+    total: { type: Number, required: true },
+    fecha: { type: Date, default: Date.now },
   },
-  productos: [
-    {
-      productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-      nombre: { type: String, required: true },
-      precio: { type: Number, required: true },
-      cantidad: { type: Number, required: true, min: 1 }
-    }
-  ],
-  total: { type: Number, required: true },
-  fecha: { type: Date, default: Date.now }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 const Order = mongoose.model('Order', orderSchema);
 
 // ----- Modelo Usuario -----
-const userSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  email:  { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  rol: { type: String, enum: ['cliente', 'admin'], default: 'cliente' }
-}, { timestamps: true });
+const userSchema = new mongoose.Schema(
+  {
+    nombre: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    rol: { type: String, enum: ['cliente', 'admin'], default: 'cliente' },
+  },
+  { timestamps: true }
+);
 
 const User = mongoose.model('User', userSchema);
 
@@ -95,7 +106,7 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ message: 'Token no proporcionado' });
   }
 
-  const [, token] = authHeader.split(' '); 
+  const [, token] = authHeader.split(' ');
 
   if (!token) {
     return res.status(401).json({ message: 'Token inválido' });
@@ -103,27 +114,36 @@ function authMiddleware(req, res, next) {
 
   try {
     const secret = process.env.JWT_SECRET || 'super_secreto_cámbiame';
-    const decoded = jwt.verify(token, secret); 
-    req.user = decoded; 
-    next(); 
+    const decoded = jwt.verify(token, secret);
+    req.user = decoded; // { id, email, rol }
+    next();
   } catch (err) {
     return res.status(401).json({ message: 'Token no válido o expirado' });
   }
 }
 
+// 🔧 Helper para base URL (local o nube)
+function getBaseUrl(req) {
+  // Si hay BASE_URL en .env (Render, etc.), se usa esa.
+  // Si no, se arma con host actual (local: 192.168.x.x:3000)
+  if (BASE_URL) return BASE_URL;
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 // ----- Rutas -----
 app.get('/', (_, res) => res.send('API FastFood OK'));
 
-// LISTAR
+// LISTAR productos (público)
 app.get('/api/products', async (req, res) => {
   try {
     const { q, categoria } = req.query;
     const where = {};
     if (categoria) where.categoria = categoria;
-    if (q) where.$or = [
-      { nombre: { $regex: q, $options: 'i' } },
-      { descripcion: { $regex: q, $options: 'i' } },
-    ];
+    if (q)
+      where.$or = [
+        { nombre: { $regex: q, $options: 'i' } },
+        { descripcion: { $regex: q, $options: 'i' } },
+      ];
 
     const productos = await Product.find(where).sort({ createdAt: -1 });
     res.json(productos);
@@ -133,26 +153,33 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// OBTENER POR ID
+// OBTENER producto POR ID (público)
 app.get('/api/products/:id', async (req, res) => {
   try {
     const producto = await Product.findById(req.params.id);
-    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
+    if (!producto)
+      return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(producto);
   } catch (err) {
     res.status(400).json({ error: 'ID inválido' });
   }
 });
 
+// Crear pedido (requiere login)
 app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
     const { productos } = req.body;
 
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
-      return res.status(400).json({ error: 'El pedido no puede estar vacío' });
+      return res
+        .status(400)
+        .json({ error: 'El pedido no puede estar vacío' });
     }
 
-    const total = productos.reduce((sum, p) => sum + p.precio * p.cantidad, 0);
+    const total = productos.reduce(
+      (sum, p) => sum + p.precio * p.cantidad,
+      0
+    );
 
     const nuevoPedido = new Order({
       user: req.user.id,
@@ -168,11 +195,12 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   }
 });
 
-
-// Listar pedidos 
-app.get('/api/orders', async (req, res) => {
+// Listar pedidos del usuario logueado
+app.get('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const pedidos = await Order.find().sort({ createdAt: -1 });
+    const pedidos = await Order.find({ user: req.user.id }).sort({
+      createdAt: -1,
+    });
     res.json(pedidos);
   } catch (err) {
     console.error('GET /api/orders', err);
@@ -180,56 +208,66 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// CREAR producto SOLO ADMIN 
-app.post('/api/admin/products', authMiddleware, upload.single('imagen'), async (req, res) => {
-  try {
-   
-    if (!req.user || req.user.rol !== 'admin') {
-      return res.status(403).json({ message: 'Solo administradores pueden crear productos' });
-    }
+// CREAR producto SOLO ADMIN (ruta admin con imagen)
+app.post(
+  '/api/admin/products',
+  authMiddleware,
+  upload.single('imagen'),
+  async (req, res) => {
+    try {
+      if (!req.user || req.user.rol !== 'admin') {
+        return res
+          .status(403)
+          .json({ message: 'Solo administradores pueden crear productos' });
+      }
 
-    const { nombre, descripcion, precio, categoria } = req.body;
+      const { nombre, descripcion, precio, categoria } = req.body;
 
-    if (!nombre || !precio || !categoria) {
-      return res.status(400).json({
-        message: 'Campos requeridos: nombre, precio y categoria',
+      if (!nombre || !precio || !categoria) {
+        return res.status(400).json({
+          message: 'Campos requeridos: nombre, precio y categoria',
+        });
+      }
+
+      const precioNum = Number(precio);
+      if (isNaN(precioNum) || precioNum <= 0) {
+        return res.status(400).json({ message: 'Precio inválido' });
+      }
+
+      let imagenUrl = null;
+      if (req.file) {
+        const base = getBaseUrl(req); 
+        imagenUrl = `${base}/images/${req.file.filename}`;
+      }
+
+      const nuevoProducto = new Product({
+        nombre,
+        descripcion,
+        precio: precioNum,
+        categoria,
+        imagen: imagenUrl,
       });
+
+      const guardado = await nuevoProducto.save();
+      res.status(201).json(guardado);
+    } catch (err) {
+      console.error('POST /api/admin/products', err);
+      res
+        .status(500)
+        .json({ message: 'Error al crear producto admin' });
     }
-
-    const precioNum = Number(precio);
-    if (isNaN(precioNum) || precioNum <= 0) {
-      return res.status(400).json({ message: 'Precio inválido' });
-    }
-
-    let imagenUrl = null;
-    if (req.file) {
-      const protocol = req.protocol;
-      const host = req.get('host');
-      imagenUrl = `${protocol}://${host}/images/${req.file.filename}`;
-    }
-
-    const nuevoProducto = new Product({
-      nombre,
-      descripcion,
-      precio: precioNum,
-      categoria,    
-      imagen: imagenUrl,
-    });
-
-    const guardado = await nuevoProducto.save();
-    res.status(201).json(guardado);
-  } catch (err) {
-    console.error('POST /api/admin/products', err);
-    res.status(500).json({ message: 'Error al crear producto admin' });
   }
-});
+);
 
+// CREAR producto (pública para pruebas; podrías cerrar esto luego)
 app.post('/api/products', upload.single('imagen'), async (req, res) => {
   try {
     const { nombre, descripcion, precio, categoria } = req.body;
 
     if (!nombre || !precio || !categoria) {
-      return res.status(400).json({ error: 'Campos requeridos: nombre, precio, categoria' });
+      return res.status(400).json({
+        error: 'Campos requeridos: nombre, precio, categoria',
+      });
     }
 
     const precioNum = Number(precio);
@@ -239,9 +277,8 @@ app.post('/api/products', upload.single('imagen'), async (req, res) => {
 
     let imagenUrl = null;
     if (req.file) {
-      const protocol = req.protocol;   // http
-      const host = req.get('host');    // 192.168.x.x:3000
-      imagenUrl = `${protocol}://${host}/images/${req.file.filename}`;
+      const base = getBaseUrl(req); // 👈 también aquí
+      imagenUrl = `${base}/images/${req.file.filename}`;
     }
 
     const nuevo = new Product({
@@ -260,7 +297,7 @@ app.post('/api/products', upload.single('imagen'), async (req, res) => {
   }
 });
 
-// ACTUALIZAR (PUT)
+// ACTUALIZAR (PUT) producto
 app.put('/api/products/:id', async (req, res) => {
   try {
     const actualizado = await Product.findByIdAndUpdate(
@@ -268,30 +305,35 @@ app.put('/api/products/:id', async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     );
-    if (!actualizado) return res.status(404).json({ error: 'Producto no encontrado' });
+    if (!actualizado)
+      return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(actualizado);
   } catch (err) {
     res.status(400).json({ error: 'ID inválido o datos no válidos' });
   }
 });
 
-// ELIMINAR (DELETE)
+// ELIMINAR (DELETE) producto
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const eliminado = await Product.findByIdAndDelete(req.params.id);
-    if (!eliminado) return res.status(404).json({ error: 'Producto no encontrado' });
+    if (!eliminado)
+      return res.status(404).json({ error: 'Producto no encontrado' });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: 'ID inválido' });
   }
 });
 
+// Registro
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { nombre, email, password } = req.body;
 
     if (!nombre || !email || !password) {
-      return res.status(400).json({ message: 'Faltan datos: nombre, email y password' });
+      return res
+        .status(400)
+        .json({ message: 'Faltan datos: nombre, email y password' });
     }
 
     const existe = await User.findOne({ email });
@@ -299,7 +341,6 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Ese correo ya está registrado' });
     }
 
-    // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const nuevoUsuario = new User({
@@ -318,12 +359,15 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Ingresa email y contraseña' });
+      return res
+        .status(400)
+        .json({ message: 'Ingresa email y contraseña' });
     }
 
     const user = await User.findOne({ email });
@@ -340,8 +384,8 @@ app.post('/api/auth/login', async (req, res) => {
     const token = jwt.sign(
       {
         id: user._id,
-        email: user.email, 
-        rol: user.rol,     
+        email: user.email,
+        rol: user.rol,
       },
       secret,
       { expiresIn: '2h' }
@@ -354,8 +398,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         nombre: user.nombre,
         email: user.email,
-        rol: user.rol, 
-      }
+        rol: user.rol,
+      },
     });
   } catch (err) {
     console.error('POST /api/auth/login', err);
@@ -363,23 +407,25 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-
-// 🔍 Detectar IP local automáticamente
+// 🔍 Detectar IP local automáticamente (para desarrollo)
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const net of interfaces[name]) {
-      const isIPv4 = net.family === "IPv4" && !net.internal;
+      const isIPv4 = net.family === 'IPv4' && !net.internal;
       if (isIPv4) return net.address;
     }
   }
-  return "localhost";
+  return 'localhost';
 }
 
 const localIP = getLocalIP();
 
 app.listen(PORT, () => {
-  console.log("🔥 Servidor corriendo:");
+  console.log('🔥 Servidor corriendo:');
   console.log(`   📍 Local: http://localhost:${PORT}`);
   console.log(`   📱 Red:   http://${localIP}:${PORT}`);
+  if (BASE_URL) {
+    console.log(`   🌍 BASE_URL: ${BASE_URL}`);
+  }
 });
